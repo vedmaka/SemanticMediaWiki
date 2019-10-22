@@ -386,7 +386,7 @@ class ParserFunctionFactory {
 	 */
 	public function getAskParserFunctionDefinition() {
 
-		$askParserFunctionDefinition = function( $parser ) {
+		$askParserFunctionDefinition = function( $parser, $frame, $args ) {
 
 			$applicationFactory = ApplicationFactory::getInstance();
 			$settings = $applicationFactory->getSettings();
@@ -399,10 +399,28 @@ class ParserFunctionFactory {
 				return $settings->isFlagSet( 'smwgParserFeatures', SMW_PARSER_INL_ERROR ) ? $askParserFunction->isQueryDisabled(): '';
 			}
 
-			return $askParserFunction->parse( func_get_args() );
+			// Quick conversion back to non SFH_OBJECT_ARGS approach
+			$allArgs = [];
+			foreach ( $args as $k => $v ) {
+				if ( $v instanceof \PPNode ) {
+					$allArgs[] = trim( $frame->expand( $v ) );
+				} elseif ( is_int( $k ) && $k >= 0 ) {
+					$allArgs[] = trim( $v );
+				} else {
+					$allArgs[] = trim( "$k=$v" );
+				}
+			}
+
+			$override = null;
+			\Hooks::run('smwAskParserFunction', [ $parser, $frame, $allArgs, &$override ]);
+			if( $override ) {
+				return $override;
+			}
+
+			return $askParserFunction->parse( $allArgs );
 		};
 
-		return [ 'ask', $askParserFunctionDefinition, 0 ];
+		return [ 'ask', $askParserFunctionDefinition, SFH_OBJECT_ARGS ];
 	}
 
 	/**
@@ -412,7 +430,7 @@ class ParserFunctionFactory {
 	 */
 	public function getShowParserFunctionDefinition() {
 
-		$showParserFunctionDefinition = function( $parser ) {
+		$showParserFunctionDefinition = function( $parser, $frame, $args ) {
 
 			$applicationFactory = ApplicationFactory::getInstance();
 			$settings = $applicationFactory->getSettings();
@@ -425,10 +443,28 @@ class ParserFunctionFactory {
 				return $settings->isFlagSet( 'smwgParserFeatures', SMW_PARSER_INL_ERROR ) ? $showParserFunction->isQueryDisabled(): '';
 			}
 
-			return $showParserFunction->parse( func_get_args() );
+			// Quick conversion back to non SFH_OBJECT_ARGS approach
+			$allArgs = [];
+			foreach ( $args as $k => $v ) {
+				if ( $v instanceof \PPNode ) {
+					$allArgs[] = trim( $frame->expand( $v ) );
+				} elseif ( is_int( $k ) && $k >= 0 ) {
+					$allArgs[] = trim( $v );
+				} else {
+					$allArgs[] = trim( "$k=$v" );
+				}
+			}
+
+			$override = null;
+			\Hooks::run('smwShowParserFunction', [ $parser, $frame, $allArgs, &$override ]);
+			if( $override ) {
+				return $override;
+			}
+
+			return $showParserFunction->parse( $allArgs );
 		};
 
-		return [ 'show', $showParserFunctionDefinition, 0 ];
+		return [ 'show', $showParserFunctionDefinition, SFH_OBJECT_ARGS ];
 	}
 
 	/**
